@@ -34,48 +34,8 @@ jobs:
             sfdx force --help
             #Authorize Dev Hub
             sfdx force:auth:jwt:grant --clientid $HUB_CONSUMER_KEY --jwtkeyfile assets/server.key --username $HUB_USER_NAME --setdefaultdevhubusername -a HubOrg
-            #Create scratch org
-            sfdx force:org:create -s -f config/project-scratch-def.json --setdefaultusername --setalias circle_build_$CIRCLE_BUILD_NUM --wait 10 --durationdays 1
-            #Push source to scratch org
-            sfdx force:source:push --targetusername circle_build_$CIRCLE_BUILD_NUM
       - run:
           name: Run Apex Tests
           command: |
             #Run unit tests on scratch org
-            sfdx force:apex:test:run --targetusername circle_build_$CIRCLE_BUILD_NUM --wait 10 --resultformat tap --codecoverage --testlevel $TESTLEVEL
-      - run:
-          name: Delete Scratch Org
-          command: |
-            #Delete scratch org
-            sfdx force:org:delete --targetusername  circle_build_$CIRCLE_BUILD_NUM --noprompt
-      - run:
-          name: Create Package Version
-          command: |
-            #Create package version
-            PACKAGEVERSION="$(sfdx force:package:version:create --package $PACKAGENAME --installationkeybypass --wait 10 --json --targetdevhubusername HubOrg | jq '.result.SubscriberPackageVersionId' | tr -d '"')"
-            echo 'PackageVersionId - ' ${PACKAGEVERSION}
-            # Store PackageVersionId to be used in future step
-            echo $PACKAGEVERSION > /tmp/packageversion.txt
-      - run:
-          name: Create Scratch Org for Installing Package Version
-          command: |
-            #Create scratch org
-            sfdx force:org:create --targetdevhubusername HubOrg --setdefaultusername --definitionfile config/project-scratch-def.json --setalias installorg --wait 10 --durationdays 1
-            sfdx force:org:display --targetusername installorg
-      - run:
-          name: Install package in Scratch Org
-          command: |
-            #Get PackageVersionId
-            PackageVersionId=$(</tmp/packageversion.txt)
-            #Install package in scratch org
-            sfdx force:package:install --package $PackageVersionId --publishwait 10 --wait 10 --targetusername installorg
-      - run:
-          name: Run Unit Tests on Scratch Org
-          command: |
-            #Run unit tests on scratch org
-            sfdx force:apex:test:run --targetusername installorg --wait 10 --resultformat tap --codecoverage --testlevel $TESTLEVEL
-      - run:
-          name: Delete Scratch org
-          command: |
-            #Delete scratch org
-            sfdx force:org:delete --targetusername installorg --noprompt
+            sfdx force:apex:test:run --targetusername HubOrg --wait 10 --resultformat tap --codecoverage --testlevel $TESTLEVEL
